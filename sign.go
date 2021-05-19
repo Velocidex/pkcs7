@@ -54,10 +54,10 @@ type signedData struct {
 	ContentInfo                contentInfo
 	Certificates               rawCertificates        `asn1:"optional,tag:0"`
 	CRLs                       []pkix.CertificateList `asn1:"optional,tag:1"`
-	SignerInfos                []signerInfo           `asn1:"set"`
+	SignerInfos                []SignerInfo           `asn1:"set"`
 }
 
-type signerInfo struct {
+type SignerInfo struct {
 	Version                   int `asn1:"default:1"`
 	IssuerAndSerialNumber     issuerAndSerial
 	DigestAlgorithm           pkix.AlgorithmIdentifier
@@ -124,10 +124,10 @@ func (sd *SignedData) AddSigner(ee *x509.Certificate, pkey crypto.PrivateKey, co
 // The signature algorithm used to hash the data is the one of the end-entity
 // certificate.
 func (sd *SignedData) AddSignerChain(ee *x509.Certificate, pkey crypto.PrivateKey, parents []*x509.Certificate, config SignerInfoConfig) error {
-// Following RFC 2315, 9.2 SignerInfo type, the distinguished name of
-// the issuer of the end-entity signer is stored in the issuerAndSerialNumber
-// section of the SignedData.SignerInfo, alongside the serial number of
-// the end-entity.
+	// Following RFC 2315, 9.2 SignerInfo type, the distinguished name of
+	// the issuer of the end-entity signer is stored in the issuerAndSerialNumber
+	// section of the SignedData.SignerInfo, alongside the serial number of
+	// the end-entity.
 	var ias issuerAndSerial
 	ias.SerialNumber = ee.SerialNumber
 	if len(parents) == 0 {
@@ -179,7 +179,7 @@ func (sd *SignedData) AddSignerChain(ee *x509.Certificate, pkey crypto.PrivateKe
 	if err != nil {
 		return err
 	}
-	signer := signerInfo{
+	signer := SignerInfo{
 		AuthenticatedAttributes:   finalAttrs,
 		UnauthenticatedAttributes: finalUnsignedAttrs,
 		DigestAlgorithm:           pkix.AlgorithmIdentifier{Algorithm: sd.digestOid},
@@ -247,7 +247,7 @@ func (sd *SignedData) SignWithoutAttr(ee *x509.Certificate, pkey crypto.PrivateK
 	if err != nil {
 		return err
 	}
-	signer := signerInfo{
+	signer := SignerInfo{
 		DigestAlgorithm:           pkix.AlgorithmIdentifier{Algorithm: sd.digestOid},
 		DigestEncryptionAlgorithm: pkix.AlgorithmIdentifier{Algorithm: sd.encryptionOid},
 		IssuerAndSerialNumber:     ias,
@@ -260,7 +260,7 @@ func (sd *SignedData) SignWithoutAttr(ee *x509.Certificate, pkey crypto.PrivateK
 	return nil
 }
 
-func (si *signerInfo) SetUnauthenticatedAttributes(extraUnsignedAttrs []Attribute) error {
+func (si *SignerInfo) SetUnauthenticatedAttributes(extraUnsignedAttrs []Attribute) error {
 	unsignedAttrs := &attributes{}
 	for _, attr := range extraUnsignedAttrs {
 		unsignedAttrs.Add(attr.Type, attr.Value)

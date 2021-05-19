@@ -32,7 +32,7 @@ func (p7 *PKCS7) VerifyWithChain(truststore *x509.CertPool) (err error) {
 	return nil
 }
 
-func verifySignature(p7 *PKCS7, signer signerInfo, truststore *x509.CertPool) (err error) {
+func verifySignature(p7 *PKCS7, signer SignerInfo, truststore *x509.CertPool) (err error) {
 	signedData := p7.Content
 	ee := getCertFromCertsByIssuerAndSerial(p7.Certificates, signer.IssuerAndSerialNumber)
 	if ee == nil {
@@ -146,6 +146,7 @@ func parseSignedData(data []byte) (*PKCS7, error) {
 		Certificates: certs,
 		CRLs:         sd.CRLs,
 		Signers:      sd.SignerInfos,
+		SignedData:   sd,
 		raw:          sd}, nil
 }
 
