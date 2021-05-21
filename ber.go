@@ -5,10 +5,12 @@ import (
 	"errors"
 )
 
-var encodeIndent = 0
+type encodingCtx struct {
+	encodeIndent int
+}
 
 type asn1Object interface {
-	EncodeTo(writer *bytes.Buffer) error
+	EncodeTo(ctx *encodingCtx, writer *bytes.Buffer) error
 }
 
 type asn1Structured struct {
@@ -16,17 +18,17 @@ type asn1Structured struct {
 	content  []asn1Object
 }
 
-func (s asn1Structured) EncodeTo(out *bytes.Buffer) error {
+func (s asn1Structured) EncodeTo(ctx *encodingCtx, out *bytes.Buffer) error {
 	//fmt.Printf("%s--> tag: % X\n", strings.Repeat("| ", encodeIndent), s.tagBytes)
-	encodeIndent++
+	ctx.encodeIndent++
 	inner := new(bytes.Buffer)
 	for _, obj := range s.content {
-		err := obj.EncodeTo(inner)
+		err := obj.EncodeTo(ctx, inner)
 		if err != nil {
 			return err
 		}
 	}
-	encodeIndent--
+	ctx.encodeIndent--
 	out.Write(s.tagBytes)
 	encodeLength(out, inner.Len())
 	out.Write(inner.Bytes())
@@ -39,7 +41,7 @@ type asn1Primitive struct {
 	content  []byte
 }
 
-func (p asn1Primitive) EncodeTo(out *bytes.Buffer) error {
+func (p asn1Primitive) EncodeTo(ctx *encodingCtx, out *bytes.Buffer) error {
 	_, err := out.Write(p.tagBytes)
 	if err != nil {
 		return err
@@ -60,12 +62,13 @@ func ber2der(ber []byte) ([]byte, error) {
 	}
 	//fmt.Printf("--> ber2der: Transcoding %d bytes\n", len(ber))
 	out := new(bytes.Buffer)
+	ctx := encodingCtx{}
 
 	obj, _, err := readObject(ber, 0)
 	if err != nil {
 		return nil, err
 	}
-	obj.EncodeTo(out)
+	obj.EncodeTo(&ctx, out)
 
 	// if offset < len(ber) {
 	//	return nil, fmt.Errorf("ber2der: Content longer than expected. Got %d, expected %d", offset, len(ber))
