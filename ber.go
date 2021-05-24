@@ -21,7 +21,9 @@ type asn1Structured struct {
 func (s asn1Structured) EncodeTo(ctx *encodingCtx, out *bytes.Buffer) error {
 	//fmt.Printf("%s--> tag: % X\n", strings.Repeat("| ", encodeIndent), s.tagBytes)
 	ctx.encodeIndent++
-	inner := new(bytes.Buffer)
+
+	// Allocate some memory to avoid frequent resizing of the buffer.
+	inner := bytes.NewBuffer(make([]byte, 0, 512))
 	for _, obj := range s.content {
 		err := obj.EncodeTo(ctx, inner)
 		if err != nil {
@@ -61,7 +63,7 @@ func ber2der(ber []byte) ([]byte, error) {
 		return nil, errors.New("ber2der: input ber is empty")
 	}
 	//fmt.Printf("--> ber2der: Transcoding %d bytes\n", len(ber))
-	out := new(bytes.Buffer)
+	out := bytes.NewBuffer(make([]byte, 0, 512))
 	ctx := encodingCtx{}
 
 	obj, _, err := readObject(ber, 0)
