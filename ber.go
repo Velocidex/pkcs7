@@ -175,6 +175,9 @@ func readObject(ber []byte, offset int) (asn1Object, int, error) {
 	}
 	// read length
 	var length int
+	if offset >= berLen {
+		return nil, 0, errors.New("ber2der: offset is after end of ber data")
+	}
 	l := ber[offset]
 	offset++
 	if offset > berLen {
@@ -186,6 +189,11 @@ func readObject(ber []byte, offset int) (asn1Object, int, error) {
 		if numberOfBytes > 4 { // int is only guaranteed to be 32bit
 			return nil, 0, errors.New("ber2der: BER tag length too long")
 		}
+
+		if offset >= berLen {
+			return nil, 0, errors.New("ber2der: offset is after end of ber data")
+		}
+
 		if numberOfBytes == 4 && (int)(ber[offset]) > 0x7F {
 			return nil, 0, errors.New("ber2der: BER tag length is negative")
 		}
@@ -193,6 +201,9 @@ func readObject(ber []byte, offset int) (asn1Object, int, error) {
 			return nil, 0, errors.New("ber2der: BER tag length has leading zero")
 		}
 		debugprint("--> (compute length) indicator byte: %x\n", l)
+		if offset+numberOfBytes >= berLen {
+			return nil, 0, errors.New("ber2der: offset is after end of ber data")
+		}
 		debugprint("--> (compute length) length bytes: % X\n", ber[offset:offset+numberOfBytes])
 		for i := 0; i < numberOfBytes; i++ {
 			length = length*256 + (int)(ber[offset])
@@ -226,6 +237,10 @@ func readObject(ber []byte, offset int) (asn1Object, int, error) {
 	debugprint("--> content       : % X\n", ber[offset:contentEnd])
 	var obj asn1Object
 	if kind == 0 {
+
+		if tagEnd >= berLen {
+			return nil, 0, errors.New("ber2der: offset is after end of ber data")
+		}
 		obj = asn1Primitive{
 			tagBytes: ber[tagStart:tagEnd],
 			length:   length,
@@ -241,6 +256,9 @@ func readObject(ber []byte, offset int) (asn1Object, int, error) {
 				return nil, 0, err
 			}
 			subObjects = append(subObjects, subObj)
+		}
+		if tagEnd >= berLen {
+			return nil, 0, errors.New("ber2der: offset is after end of ber data")
 		}
 		obj = asn1Structured{
 			tagBytes: ber[tagStart:tagEnd],
